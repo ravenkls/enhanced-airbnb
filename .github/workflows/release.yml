@@ -31,6 +31,7 @@ jobs:
             .output/*-chrome.zip
             .output/SHA256SUMS.txt
           if-no-files-found: error
+          include-hidden-files: true
   publish:
     needs: build
     runs-on: ubuntu-latest
