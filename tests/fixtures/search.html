@@ -1,0 +1,30 @@
+<!-- Reduced fixtures based on observed English Airbnb markup, 2026-09-28. Prices and IDs are examples. -->
+<div data-testid="little-search-guests">Guests 4 guests</div>
+<article data-testid="card-container">
+  <a href="/rooms/1?adults=4&check_in=2026-11-10&check_out=2026-11-14">Example home</a>
+  <div data-testid="price-availability-row">
+    <span aria-label="£1,200 total, originally £1,500"
+      ><span aria-hidden="true"
+        ><span>£1,500</span
+        ><button><span>£1,200&nbsp;total</span><span>Show price breakdown</span></button></span
+      ></span
+    >
+    <div>Pay £0 today</div>
+  </div>
+</article>
+<article data-testid="card-container">
+  <a href="/rooms/2?adults=4&check_in=2026-11-10&check_out=2026-11-13">Similar dates</a>
+  <div data-testid="price-availability-row">
+    <div aria-hidden="true">
+      <button><span>£600&nbsp;total</span><span>Show price breakdown</span></button>
+    </div>
+    <span>£600 total</span>
+  </div>
+</article>
+<div role="region" aria-label="Google Map">
+  <gmp-advanced-marker role="button" tabindex="0"
+    ><div data-testid="map/markers/BasePillMarker">
+      <span>Example home, £1,200</span><span aria-hidden="true">£1,200</span>
+    </div></gmp-advanced-marker
+  >
+</div>

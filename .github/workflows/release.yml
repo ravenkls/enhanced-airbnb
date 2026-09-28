@@ -1,0 +1,57 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Verify tag matches package version
+        run: node scripts/check-release.mjs
+      - run: npm run check
+      - run: npm run zip
+      - name: Generate checksums
+        working-directory: .output
+        run: sha256sum *-chrome.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: |
+            .output/*-chrome.zip
+            .output/SHA256SUMS.txt
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: release
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Download the Chrome ZIP below (not the source-code archive), unzip it, then open chrome://extensions, enable Developer mode, and choose Load unpacked. Select the extracted folder containing manifest.json.
+
+          Supports English-language Airbnb pages on the domains listed in the README. Derived prices use the displayed price and split adults + children equally, excluding infants. Airbnb layout changes may require extension updates.
+
+          Updating: extract the new ZIP, replace the files in your existing extension folder, click Reload in chrome://extensions, then refresh Airbnb tabs. GitHub installations do not update automatically.
+          NOTES
+          gh release create "$RELEASE_TAG" release/* --verify-tag --title "$RELEASE_TAG" --notes-file notes.md --generate-notes

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Enhanced Airbnb · Preview</title>
+    <style>
+      body {
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+        color: #263b3a;
+        margin: 0;
+        background: #f6f9f8;
+      }
+      main {
+        max-width: 1050px;
+        margin: auto;
+        padding: 40px 24px;
+      }
+      h1 {
+        font-size: 32px;
+        letter-spacing: -1px;
+        margin: 0;
+      }
+      header p {
+        color: #626868;
+      }
+      fieldset {
+        border: 0;
+        padding: 12px 0 25px;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      input {
+        font: inherit;
+        width: 55px;
+        padding: 5px;
+      }
+      input[type='checkbox'] {
+        width: auto;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        text-align: left;
+      }
+      button:focus-visible {
+        outline: 2px solid #23675f;
+      }
+      section {
+        margin-top: 20px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+      }
+      .card {
+        background: white;
+        border: 1px solid #dce5e2;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .photo {
+        height: 120px;
+        background: linear-gradient(140deg, #bdd6d0, #e5ede8);
+        display: flex;
+        align-items: end;
+        padding: 18px;
+        font-weight: 600;
+      }
+      .content {
+        padding: 18px;
+      }
+      a {
+        color: inherit;
+      }
+      .price {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .muted {
+        color: #626868;
+        font-size: 13px;
+      }
+      .map {
+        height: 235px;
+        background: #e1eee5;
+        position: relative;
+        border-radius: 12px;
+        background-image:
+          linear-gradient(32deg, transparent 46%, #ffffffb0 47%, #ffffffb0 51%, transparent 52%),
+          linear-gradient(115deg, transparent 45%, #ffffffb0 46%, #ffffffb0 49%, transparent 50%);
+      }
+      gmp-advanced-marker {
+        position: absolute;
+        left: 40%;
+        top: 35%;
+      }
+      [data-testid='map/markers/BasePillMarker'] {
+        position: relative;
+        background: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        box-shadow: 0 2px 6px #0002;
+        font-weight: 650;
+      }
+      aside {
+        background: white;
+        border: 1px solid #dce5e2;
+        border-radius: 12px;
+        padding: 22px;
+      }
+      .reserve {
+        display: block;
+        background: #23675f;
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 24px;
+      }
+      h2 {
+        font-size: 18px;
+      }
+      footer {
+        margin-top: 30px;
+        color: #626868;
+        font-size: 13px;
+      }
+      @media (max-width: 650px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding: 24px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>The price, shared.</h1>
+        <p>
+          Enhanced Airbnb preview · Illustrative prices, using the extension’s real calculation and
+          rendering code.
+        </p>
+      </header>
+      <fieldset>
+        <label>Guests <input id="guests" type="number" min="1" max="16" value="4" /></label
+        ><label>Nights <input id="nights" type="number" min="1" max="28" value="4" /></label
+        ><label><input id="enabled" type="checkbox" checked /> Show breakdowns</label
+        ><button id="discount">Apply example discount</button>
+      </fieldset>
+      <div class="layout">
+        <section>
+          <h2>Search result</h2>
+          <article class="card" data-testid="card-container">
+            <div class="photo">A place for the whole group</div>
+            <div class="content">
+              <strong>Example apartment</strong>
+              <p class="muted">2 bedrooms · 3 beds</p>
+              <div data-testid="price-availability-row">
+                <span class="price" id="list-price">£1,200 total</span>
+              </div>
+            </div>
+          </article>
+          <h2>Map</h2>
+          <div class="map">
+            <gmp-advanced-marker role="button" tabindex="0" aria-label="Example apartment, £1,200"
+              ><div data-testid="map/markers/BasePillMarker">
+                <span id="map-price">£1,200</span>
+              </div></gmp-advanced-marker
+            >
+          </div>
+        </section>
+        <section>
+          <h2>Property booking panel</h2>
+          <aside data-section-id="BOOK_IT_SIDEBAR">
+            <div style="--pricing-guest-display-price-alignment: flex-start">
+              <span class="price" id="detail-price">£1,200 total</span>
+            </div>
+            <p class="muted">Your selected dates and guests</p>
+            <span class="reserve">Example reservation panel</span>
+          </aside>
+        </section>
+      </div>
+      <footer>
+        Original prices stay in place. Map labels show more detail on hover or keyboard focus. This
+        page is a local test fixture, not Airbnb.
+      </footer>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
