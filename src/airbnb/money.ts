@@ -55,3 +55,10 @@ export function formatMoney(amount: number, money: Money, locale: string): strin
     ? `${formatted} ${money.token}`
     : `${money.token}${/^[A-Z]{3}$/.test(money.token) ? ' ' : ''}${formatted}`;
 }
+
+export function scaleMoneyText(text: string, factor: number, locale: string): string {
+  return text.replace(new RegExp(moneyPattern, 'g'), (match) => {
+    const money = parseMoney(match);
+    return money ? formatMoney(money.amount * factor, money, locale) : match;
+  });
+}

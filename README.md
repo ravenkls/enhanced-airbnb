@@ -1,8 +1,8 @@
 # Enhanced Airbnb
 
-See the price of a stay **per night**, **per person**, and **per person per night**, alongside Airbnb's original prices.
+A native-looking **Total / Per person** switch for Airbnb. Compare stay prices and nightly costs without extra price badges or explanatory rows.
 
-A Chrome Manifest V3 extension built with TypeScript and WXT. No account, backend, analytics, or tracking. The extension reads prices locally and only stores your on/off preference.
+A Chrome Manifest V3 extension built with TypeScript and WXT. No account, backend, analytics, or tracking. The extension reads prices locally and only stores your on/off preference and price display mode.
 
 ## Install from GitHub
 
@@ -16,25 +16,26 @@ To update, replace the files in that folder with the next release, click **Reloa
 
 ## What it does
 
-| Surface                                                           | Enhancement                                                              |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Search cards and map preview cards using the same price component | Three derived prices below the original price                            |
-| Property booking panel and supported sticky booking prices        | Three derived prices next to the booking price                           |
-| Map price markers                                                 | Per-person/night line; hover or keyboard-focus it for the full breakdown |
+| Surface                                                    | Enhancement                                                    |
+| ---------------------------------------------------------- | -------------------------------------------------------------- |
+| Search cards and map preview cards                         | Stay price and nightly price on one line, in the selected mode |
+| Property booking panel and supported sticky booking prices | The same compact price display                                 |
+| Map price markers                                          | One stay price inside the original pin, in the selected mode   |
 
-For **£1,200 total**, **4 guests**, **3 nights**: **£400/night**, **£300/person for the stay**, **£100/person/night**.
+Use **Total / Per person** beside the search results count. The choice applies to supported list, property and map prices together and is remembered across tabs. The popup offers the same preference and an on/off control.
 
-- Splits adults + children equally. Infants and pets are not counted.
-- Uses each card's own dates, including recommendations for similar dates.
-- Recognises discounted totals and preserves currency symbols. No exchange-rate conversion.
-- Derived prices are averages, rounded to at most two decimal places. A rounded Airbnb source price can introduce small differences from checkout.
-- Uses only the fees and taxes already included in the displayed price. A nightly-rate basis is explicitly labelled because extra fees may apply.
-- Updates as Airbnb adds results or changes prices, URLs, and booking controls.
-- With no reliable guest count, shows nothing. With guests but no dates, shows only derivations that do not require stay length.
+For **£1,200 total**, **4 guests**, **3 nights**:
+
+- **Total:** list `£1,200 total · £400 / night`; map `£1,200`.
+- **Per person:** list `£300 per person · £100 / night`; map `£300`.
+
+Adults and children share the price equally; infants and pets are excluded. Each card's own dates are used, including similar-dates recommendations. Current and crossed-out prices are converted consistently. Currency symbols are preserved without exchange-rate conversion. Calculations use the displayed price and its existing fee basis, rounded to at most two decimals.
+
+Prices update as Airbnb changes results, dates, guests or prices. Without reliable guest context, per-person mode is unavailable. A nightly rate without known dates cannot become a stay total, so it is left unchanged. Switching off restores Airbnb's original text and removes the added controls.
 
 ### Current scope
 
-Version 0.1 supports **English-language pages** on `airbnb.com`, `airbnb.co.uk`, `airbnb.ca`, `airbnb.com.au`, `airbnb.co.nz`, and `airbnb.ie` (including subdomains). Switch Airbnb's language to English if needed. Amount parsing covers common currency symbols and codes, including comma/period decimal formats.
+Version 0.2 supports **English-language pages** on `airbnb.com`, `airbnb.co.uk`, `airbnb.ca`, `airbnb.com.au`, `airbnb.co.nz`, and `airbnb.ie` (including subdomains). Switch Airbnb's language to English if needed. Amount parsing covers common currency symbols and codes, including comma/period decimal formats.
 
 Airbnb changes and experiments with its markup. The adapter targets known price components; it deliberately does not interpret every monetary amount (deposits, instalments, monthly prices, fee line items, and checkout are outside this release's scope). Bare map prices are annotated only when the current search cards establish a consistent total/nightly basis. Map-only results without that evidence are skipped.
 

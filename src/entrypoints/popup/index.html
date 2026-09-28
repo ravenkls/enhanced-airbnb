@@ -13,31 +13,20 @@
       </header>
       <p class="intro">The price, shared.</p>
       <label class="setting"
-        ><span>Show price breakdowns</span
+        ><span>Enable enhanced prices</span
         ><input id="enabled" type="checkbox" role="switch" disabled
       /></label>
+      <label class="setting"
+        ><span>Display prices</span
+        ><select id="price-mode">
+          <option value="total">Total</option>
+          <option value="person">Per person</option>
+        </select></label
+      >
       <p id="status" role="status">Loading your preference…</p>
-      <section aria-labelledby="example-title">
-        <h2 id="example-title">A stay of £1,200</h2>
-        <p class="example-context">4 guests, 3 nights</p>
-        <dl>
-          <div>
-            <dt>Per night</dt>
-            <dd>£400</dd>
-          </div>
-          <div>
-            <dt>Per person for stay</dt>
-            <dd>£300</dd>
-          </div>
-          <div class="highlight">
-            <dt>Per person per night</dt>
-            <dd>£100</dd>
-          </div>
-        </dl>
-      </section>
       <p class="help">
-        Choose guests and dates on Airbnb. Breakdowns appear beside supported list, property and map
-        prices.
+        Choose guests and dates on Airbnb, then switch between Total and Per person beside the
+        results count. Lists show the stay and nightly prices. Map pins show just the stay price.
       </p>
       <p class="fine">
         Adults and children share the price equally. Infants are excluded. Uses the displayed price,

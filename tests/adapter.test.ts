@@ -54,20 +54,20 @@ describe('render lifecycle', () => {
     const enhancer = createEnhancer(document, () => url, airbnbSource, annotationRenderer);
     enhancer.refresh();
     enhancer.refresh();
-    expect(document.querySelectorAll(annotationTag)).toHaveLength(3);
+    expect(document.querySelectorAll(annotationTag)).toHaveLength(2);
     expect(document.querySelector(annotationTag)?.shadowRoot?.textContent).toContain(
-      '£75 / person / night',
+      '£300 / night',
     );
     const price = document.querySelector('[aria-label]')!;
     price.setAttribute('aria-label', '£1,600 total, originally £1,800');
     enhancer.refresh();
     expect(document.querySelector(annotationTag)?.shadowRoot?.textContent).toContain(
-      '£100 / person / night',
+      '£400 / night',
     );
     enhancer.setEnabled(false);
     expect(document.querySelectorAll(annotationTag)).toHaveLength(0);
     enhancer.setEnabled(true);
-    expect(document.querySelectorAll(annotationTag)).toHaveLength(3);
+    expect(document.querySelectorAll(annotationTag)).toHaveLength(2);
     document
       .querySelectorAll('[data-testid="price-availability-row"]')
       .forEach((el) => (el.textContent = 'Add dates for prices'));
@@ -85,7 +85,7 @@ describe('render lifecycle', () => {
     );
     enhancer.refresh();
     expect(document.querySelector(annotationTag)?.shadowRoot?.textContent).toContain(
-      '£50 / person / night',
+      '£300 / night',
     );
     current = new URL('https://www.airbnb.com/rooms/1');
     enhancer.refresh();
@@ -104,11 +104,82 @@ describe('render lifecycle', () => {
     );
     await vi.advanceTimersByTimeAsync(300);
     expect(refresh).toHaveBeenCalledTimes(2);
-    expect(document.querySelectorAll(annotationTag)).toHaveLength(4);
+    expect(document.querySelectorAll(annotationTag)).toHaveLength(3);
     stop();
     enhancer.destroy();
     document.body.append(document.createElement('div'));
     await vi.advanceTimersByTimeAsync(300);
     expect(refresh).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('shared price mode', () => {
+  it('changes native prices and discounts once, including maps, and restores them', () => {
+    const original = document.body.innerHTML;
+    const enhancer = createEnhancer(document, () => url, airbnbSource, annotationRenderer);
+    enhancer.setMode('person');
+    enhancer.refresh();
+    const row = document.querySelector('[data-testid="price-availability-row"]')!;
+    expect(row.textContent).toContain('£300');
+    expect(row.textContent).toContain('£375');
+    expect(row.textContent).toContain('per person');
+    expect(row.textContent).toContain('Pay £0 today');
+    expect(row.querySelector('[aria-label]')?.getAttribute('aria-label')).toBe(
+      '£300 per person, originally £375',
+    );
+    expect(row.querySelector(annotationTag)?.shadowRoot?.textContent).toContain('£75 / night');
+    const map = document.querySelector('[data-testid="map/markers/BasePillMarker"]')!;
+    expect(map.textContent).toContain('£300');
+    expect(map.querySelector(annotationTag)).toBeNull();
+    enhancer.setMode('total');
+    expect(row.textContent).toContain('£1,200');
+    expect(map.textContent).toContain('£1,200');
+    enhancer.setEnabled(false);
+    expect(document.body.innerHTML).toBe(original);
+  });
+  it('preserves external price updates while per-person mode is on', () => {
+    document.body.innerHTML =
+      '<div data-testid="price-availability-row"><span>£1,200 total</span></div>';
+    const enhancer = createEnhancer(document, () => url, airbnbSource, annotationRenderer);
+    enhancer.setMode('person');
+    document.querySelector('span')!.firstChild!.textContent = '£800 total';
+    enhancer.refresh();
+    expect(document.querySelector('span')?.textContent).toBe('£200 per person');
+    enhancer.destroy();
+    expect(document.querySelector('span')?.textContent).toBe('£800 total');
+  });
+  it('places a working switch beside the results heading', () => {
+    document.body.insertAdjacentHTML(
+      'afterbegin',
+      '<h1><span data-testid="stays-page-heading" aria-hidden="true">80 homes within map area</span></h1>',
+    );
+    const changed = vi.fn();
+    const enhancer = createEnhancer(document, () => url, airbnbSource, annotationRenderer, changed);
+    enhancer.refresh();
+    const control = document.querySelector('h1 enhanced-airbnb-mode')!;
+    expect(control.closest('[aria-hidden="true"]')).toBeNull();
+    const person = control.shadowRoot!.querySelectorAll('button')[1]!;
+    person.click();
+    expect(person.getAttribute('aria-pressed')).toBe('true');
+    expect(changed).toHaveBeenCalledWith('person');
+    expect(
+      document.querySelector('[data-testid="map/markers/BasePillMarker"]')?.textContent,
+    ).toContain('£300');
+  });
+  it('does not create mutation feedback loops when rewriting native prices', async () => {
+    vi.useFakeTimers();
+    const enhancer = createEnhancer(document, () => url, airbnbSource, annotationRenderer);
+    const refresh = vi.fn(enhancer.refresh);
+    const stop = observePage(document, refresh);
+    enhancer.setMode('person');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    document
+      .querySelector('[aria-label]')!
+      .setAttribute('aria-label', '£800 total, originally £1,200');
+    await vi.advanceTimersByTimeAsync(500);
+    expect(refresh).toHaveBeenCalledTimes(2);
+    stop();
+    enhancer.destroy();
   });
 });

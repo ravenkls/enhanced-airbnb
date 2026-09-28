@@ -1,13 +1,11 @@
 # Visual direction
 
-A small travel companion for splitting a stay, designed to fit beside Airbnb's own prices.
+The extension should look like an Airbnb price-display option. Native price nodes, typography, map pills and click targets remain in place.
 
-- Paper `#ffffff`, ink `#263b3a`, secondary text `#626868`, sea green `#23675f`, pale green `#edf7f3`, border `#dce5e2`.
-- System sans serif for compact, familiar browser UI; tabular numbers for comparisons.
-- Left-aligned annotations below the original price. Each metric stays together and wraps as a unit. The popup uses a simple receipt layout with one highlighted per-person/night result.
-- Map labels use a narrow secondary line below the original pill. Hover/focus reveals the full calculation.
+- White `#ffffff`, primary text `#222222`, secondary text `#6a6a6a`, control background `#f7f7f7`, border `#dddddd`.
+- Inherit Airbnb's font family and price size. Nightly prices use normal weight; the original stay price retains its original weight.
+- A compact Total / Per person segmented control sits alongside the results count.
+- List and property prices occupy one line: stay price, a middle dot, and nightly price.
+- Map pins contain only the stay price. The shared mode determines whether it is for the group or one person.
 
-Layout: original price → three derived metrics → guest/night basis.
-Popup: name → toggle → worked example → short explanation.
-
-Review: avoid a separate dashboard or decorative cards. The only accent identifies the shared price; original Airbnb prices retain visual priority. Shadow DOM isolates annotation styles from Airbnb styles.
+Review against the brief: remove the green accent, auxiliary map badges, explanatory notes and three-metric rows. No additional cards, branding or background treatments on Airbnb pages. The mode switch is the only new control. Retain visible keyboard focus and pressed-state semantics.

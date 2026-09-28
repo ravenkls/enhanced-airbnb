@@ -2,6 +2,7 @@ import { browser } from 'wxt/browser';
 import './style.css';
 
 const toggle = document.querySelector<HTMLInputElement>('#enabled')!;
+const mode = document.querySelector<HTMLSelectElement>('#price-mode')!;
 const status = document.querySelector<HTMLElement>('#status')!;
 const showStatus = () => {
   status.textContent = toggle.checked
@@ -10,8 +11,9 @@ const showStatus = () => {
 };
 async function init() {
   try {
-    const stored = await browser.storage.local.get('enabled');
+    const stored = await browser.storage.local.get(['enabled', 'priceMode']);
     toggle.checked = stored.enabled !== false;
+    mode.value = stored.priceMode === 'person' ? 'person' : 'total';
     toggle.disabled = false;
     showStatus();
   } catch {
@@ -31,3 +33,12 @@ toggle.addEventListener('change', async () => {
   }
 });
 void init();
+
+mode.addEventListener('change', async () => {
+  try {
+    await browser.storage.local.set({ priceMode: mode.value });
+    showStatus();
+  } catch {
+    status.textContent = 'Could not save price display. Please try again.';
+  }
+});

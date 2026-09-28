@@ -135,3 +135,15 @@ footer {
 footer {
   margin-top: 18px;
 }
+
+.setting + .setting {
+  margin-top: 16px;
+}
+select {
+  font: inherit;
+  color: inherit;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px;
+  background: white;
+}

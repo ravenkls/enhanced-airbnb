@@ -1,71 +1,115 @@
 import { annotationTag, type PriceTarget } from '../airbnb/adapter';
-import { formatMoney } from '../airbnb/money';
+import { formatMoney, parseMoney, scaleMoneyText } from '../airbnb/money';
 import type { Breakdown } from '../domain/pricing';
+import { writeAttribute, writeText } from './dom-writes';
 
+export type PriceMode = 'total' | 'person';
+export interface PricePresentation {
+  restore(): void;
+}
 export interface AnnotationRenderer {
-  render(target: PriceTarget, breakdown: Breakdown, locale: string): HTMLElement;
+  render(
+    target: PriceTarget,
+    breakdown: Breakdown,
+    locale: string,
+    mode: PriceMode,
+  ): PricePresentation;
 }
 
-const styles = `
-:host { all: initial; display: block; margin-top: 6px; font-family: inherit; color: #365453; }
-.summary { font: 12px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.prices { display: flex; flex-wrap: wrap; gap: 2px 12px; }
-strong { font-weight: 650; font-variant-numeric: tabular-nums; }
-.note { display: block; color: #626868; font-size: 10px; margin-top: 2px; }
-:host([data-surface='map']) { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; z-index: 1; }
-.map-line { display: block; padding: 2px 7px; border: 1px solid #cbdedb; border-radius: 5px; color: #244b47; background: #f0f8f6; white-space: nowrap; font: 11px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; box-shadow: 0 1px 2px #00000014; }
-.full { display: none; position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); width: max-content; max-width: 240px; padding: 10px; border-radius: 8px; background: white; border: 1px solid #cbdedb; box-shadow: 0 3px 12px #0002; }
-:host(:hover) .full, :host(:focus) .full { display: block; }
-:host(:focus-visible) { outline: 2px solid #23675f; outline-offset: 2px; }
-`;
-
 export const annotationRenderer: AnnotationRenderer = {
-  render(target, breakdown, locale) {
+  render(target, breakdown, locale, mode) {
     const doc = target.element.ownerDocument;
-    const host = doc.createElement(annotationTag);
-    host.dataset.surface = target.surface;
-    const shadow = host.attachShadow({ mode: 'open' });
-    const style = doc.createElement('style');
-    style.textContent = styles;
-    shadow.append(style);
-    const summary = doc.createElement('span');
-    summary.className = 'summary';
-    const prices = doc.createElement('span');
-    prices.className = 'prices';
-    const values: [number | null, string][] = [
-      [breakdown.nightly, '/ night'],
-      [breakdown.perPerson, '/ person for stay'],
-      [breakdown.perPersonNight, '/ person / night'],
-    ];
-    const lines: string[] = [];
-    for (const [amount, label] of values) {
-      if (amount === null) continue;
-      const row = doc.createElement('span');
-      const value = doc.createElement('strong');
-      value.textContent = formatMoney(amount, target.price.money, locale);
-      row.append(value, ` ${label}`);
-      prices.append(row);
-      lines.push(`${value.textContent} ${label}`);
+    const undo: (() => void)[] = [];
+    const hasStay = target.price.basis === 'total' || breakdown.nights !== null;
+    // A nightly rate without dates cannot be presented as a whole-stay map price.
+    if (!hasStay) return { restore() {} };
+    const factor =
+      (target.price.basis === 'night' ? breakdown.nights! : 1) /
+      (mode === 'person' ? breakdown.guests : 1);
+    const transform = (text: string) => {
+      let value = scaleMoneyText(text, factor, locale).replace(
+        /\bfor\s+\d+\s+nights?\b/gi,
+        'total',
+      );
+      if (target.price.basis === 'night')
+        value = value.replace(/(?:per |a |\/\s*)?\bnight\b/gi, 'total');
+      if (mode === 'person') value = value.replace(/\btotal\b/gi, 'per person');
+      return value;
+    };
+    const root =
+      target.element.querySelector<HTMLElement>(
+        '[style*="--pricing-guest-display-price-alignment"]',
+      ) ?? target.element;
+    const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = node as Text;
+      if (text.parentElement?.closest(`${annotationTag}, script, style`)) continue;
+      // Financing and cancellation copy are not part of the accommodation price.
+      if (
+        /^\s*(?:pay\b|due\b|free cancellation\b|instalment\b|installment\b)/i.test(
+          text.parentElement?.textContent ?? '',
+        )
+      )
+        continue;
+      const original = text.data;
+      const next = transform(original);
+      if (next === original) continue;
+      writeText(text, next);
+      undo.push(() => {
+        if (text.data === next) writeText(text, original);
+      });
     }
-    const note = doc.createElement('span');
-    note.className = 'note';
-    note.textContent = `Split between ${breakdown.guests} ${breakdown.guests === 1 ? 'guest' : 'guests'}${breakdown.nights ? ` over ${breakdown.nights} ${breakdown.nights === 1 ? 'night' : 'nights'}` : ''}. ${target.price.basis === 'total' ? 'Based on displayed total.' : 'Based on nightly rate; extra fees may apply.'}`;
-    summary.append(prices, note);
-    host.title = `${lines.join(' • ')}. ${note.textContent}`;
-    if (target.surface === 'map') {
-      host.tabIndex = 0;
-      host.setAttribute('role', 'note');
-      host.setAttribute('aria-label', host.title);
-      const compact = doc.createElement('span');
-      compact.className = 'map-line';
-      const amount = breakdown.perPersonNight ?? breakdown.perPerson;
-      if (amount === null) return host;
-      compact.textContent = `${formatMoney(amount, target.price.money, locale)} / person${breakdown.perPersonNight === null ? '' : ' / night'}`;
-      compact.setAttribute('aria-hidden', 'true');
-      summary.classList.add('full');
-      shadow.append(compact);
+    const labels = [...root.querySelectorAll('[aria-label]')];
+    if (root.hasAttribute('aria-label')) labels.push(root);
+    const marker = target.surface === 'map' ? root.closest('[role="button"]') : null;
+    if (marker?.hasAttribute('aria-label') && !labels.includes(marker)) labels.push(marker);
+    for (const element of labels) {
+      const original = element.getAttribute('aria-label')!;
+      if (!parseMoney(original)) continue;
+      let next = transform(original);
+      if (target.surface === 'map' && mode === 'person' && !next.includes('per person'))
+        next += ' per person';
+      if (next === original) continue;
+      writeAttribute(element, 'aria-label', next);
+      undo.push(() => {
+        if (element.getAttribute('aria-label') === next)
+          writeAttribute(element, 'aria-label', original);
+      });
     }
-    shadow.append(summary);
-    return host;
+    if (target.surface !== 'map') {
+      const nightly = mode === 'person' ? breakdown.perPersonNight : breakdown.nightly;
+      if (nightly !== null) {
+        const host = doc.createElement(annotationTag);
+        host.dataset.surface = target.surface;
+        const shadow = host.attachShadow({ mode: 'open' });
+        const style = doc.createElement('style');
+        style.textContent =
+          ':host{display:inline;font:inherit;color:inherit;margin-inline-start:8px;white-space:nowrap}span{font:inherit;font-weight:400;color:#6a6a6a}';
+        const label = doc.createElement('span');
+        label.textContent = `· ${formatMoney(nightly, target.price.money, locale)} / night`;
+        host.title =
+          mode === 'person'
+            ? `Per person, per night. Split between ${breakdown.guests} guests.`
+            : 'Average price per night.';
+        shadow.append(style, label);
+        const button = [...root.querySelectorAll('button')].find((el) =>
+          parseMoney(el.textContent ?? ''),
+        );
+        const anchor =
+          button ??
+          [...root.querySelectorAll('span')].find(
+            (el) => parseMoney(el.textContent ?? '') && !el.querySelector('span'),
+          ) ??
+          root;
+        anchor.append(host);
+        undo.push(() => host.remove());
+      }
+    }
+    return {
+      restore() {
+        for (const restore of undo.toReversed()) restore();
+      },
+    };
   },
 };

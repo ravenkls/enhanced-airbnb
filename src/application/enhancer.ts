@@ -2,9 +2,14 @@ import { annotationTag, type PriceSource } from '../airbnb/adapter';
 import { calculate } from '../domain/pricing';
 import type { AnnotationRenderer } from '../ui/annotation';
 
+import type { PriceMode, PricePresentation } from '../ui/annotation';
+import { createPriceModeControl, modeControlTag } from '../ui/price-mode-control';
+import { isInternalMutation } from '../ui/dom-writes';
+
 export interface Enhancer {
   refresh(): void;
   setEnabled(enabled: boolean): void;
+  setMode(mode: PriceMode): void;
   destroy(): void;
 }
 
@@ -13,56 +18,67 @@ export function createEnhancer(
   getUrl: () => URL,
   source: PriceSource,
   renderer: AnnotationRenderer,
+  onModeChange: (mode: PriceMode) => void = () => {},
 ): Enhancer {
-  const rendered = new Map<HTMLElement, { host: HTMLElement; signature: string }>();
+  let rendered: PricePresentation[] = [];
   let enabled = true;
+  let mode: PriceMode = 'total';
   const clear = () => {
-    rendered.forEach(({ host }) => host.remove());
-    rendered.clear();
+    rendered.forEach((presentation) => presentation.restore());
+    rendered = [];
   };
+  const control = createPriceModeControl(doc, (value) => {
+    mode = value;
+    refresh();
+    onModeChange(value);
+  });
   const refresh = () => {
-    if (!enabled) return;
-    const active = new Set<HTMLElement>();
+    clear();
+    if (!enabled) {
+      control.remove();
+      return;
+    }
+    const targets = source.read(doc, getUrl());
+    const eligible = targets.map((target) => ({
+      target,
+      breakdown: calculate(target.price, target.context),
+    }));
+    const available = eligible.length > 0 && eligible.every(({ breakdown }) => breakdown !== null);
+    const effectiveMode = available ? mode : 'total';
     const locale = doc.documentElement.lang || 'en';
-    for (const target of source.read(doc, getUrl())) {
-      const breakdown = calculate(target.price, target.context);
+    for (const { target, breakdown } of eligible) {
       if (
         !breakdown ||
         !target.element.isConnected ||
         target.element.closest('[hidden], [aria-busy="true"]')
       )
         continue;
-      active.add(target.element);
-      const signature = JSON.stringify([target.price, breakdown, target.surface, locale]);
-      const previous = rendered.get(target.element);
-      if (previous?.signature === signature && previous.host.isConnected) continue;
-      previous?.host.remove();
-      const host = renderer.render(target, breakdown, locale);
-      // Append only our own node. Existing price nodes, links and event handlers are untouched.
-      target.element.append(host);
-      rendered.set(target.element, { host, signature });
+      rendered.push(renderer.render(target, breakdown, locale, effectiveMode));
     }
-    for (const [element, { host }] of rendered) {
-      if (!active.has(element)) {
-        host.remove();
-        rendered.delete(element);
-      }
-    }
+    if (targets.some((target) => target.surface === 'listing'))
+      control.update(effectiveMode, available);
+    else control.remove();
   };
   return {
     refresh,
+    setMode(value) {
+      mode = value;
+      refresh();
+    },
     setEnabled(value) {
       enabled = value;
-      if (value) refresh();
-      else clear();
+      refresh();
     },
-    destroy: clear,
+    destroy() {
+      clear();
+      control.remove();
+    },
   };
 }
 
 const owned = (node: Node): boolean => {
   const element = node.nodeType === 1 ? (node as Element) : node.parentElement;
-  return !!element?.closest(annotationTag);
+  return !!element?.closest(`${annotationTag}, ${modeControlTag}`);
 };
 
 export function observePage(doc: Document, refresh: () => void): () => void {
@@ -78,7 +94,7 @@ export function observePage(doc: Document, refresh: () => void): () => void {
   };
   const observer = new MutationObserver((records) => {
     const changed = records.some((record) => {
-      if (owned(record.target)) return false;
+      if (owned(record.target) || isInternalMutation(record)) return false;
       if (record.type !== 'childList') return true;
       return [...record.addedNodes, ...record.removedNodes].some((node) => !owned(node));
     });
