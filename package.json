@@ -1,6 +1,6 @@
 {
   "name": "enhanced-airbnb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Understand Airbnb prices per night, per person, and per person per night.",
   "license": "MIT",
